@@ -187,8 +187,8 @@ func (db *SimpleBucketBackend) HeadObject(bucketName, objectName string) (*gofak
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	opt := filepath.Join(bucketName, objectName)
-	stat, err := db.fs.Stat(opt)
+	fp := filepath.ToSlash(filepath.Join(bucketName, objectName))
+	stat, err := db.fs.Stat(fp)
 	if err == vfs.ENOENT {
 		return nil, gofakes3.KeyNotFound(objectName)
 	} else if err != nil {
@@ -225,7 +225,7 @@ func (db *SimpleBucketBackend) GetObject(bucketName, objectName string, rangeReq
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	fp := filepath.Join(bucketName, objectName)
+	fp := filepath.ToSlash(filepath.Join(bucketName, objectName))
 	f, err := db.fs.Open(fp)
 	if err == vfs.ENOENT {
 		return nil, gofakes3.KeyNotFound(objectName)
@@ -326,7 +326,7 @@ func (db *SimpleBucketBackend) PutObject(
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	fp := filepath.Join(bucketName, objectName)
+	fp := filepath.ToSlash(filepath.Join(bucketName, objectName))
 	fmt.Printf("PutObject: %s\n\n\n", fp)
 	objectDir := filepath.Dir(fp)
 	// _, err = db.fs.Stat(objectDir)
@@ -416,11 +416,25 @@ func (db *SimpleBucketBackend) deleteObjectLocked(bucketName, objectName string)
 		return gofakes3.BucketNotFound(bucketName)
 	}
 
-	fp := filepath.Join(bucketName, objectName)
+	fp := filepath.ToSlash(filepath.Join(bucketName, objectName))
 	// S3 does not report an error when attemping to delete a key that does not exist, so
 	// we need to skip IsNotExist errors.
 	if err := db.fs.Remove(fp); err != nil && !os.IsNotExist(err) {
 		return err
+	}
+
+	// Remove empty dirs
+	dirs := strings.Split(filepath.ToSlash(filepath.Dir(fp)), "/")
+	for i, _ := range dirs {
+		dir := "/" + strings.Join(dirs[:len(dirs)-i], "/")
+		obj, err := db.fs.ReadDir(dir)
+		if err != nil {
+			return err
+		}
+		// Do not delete bucket itself
+		if len(obj) == 0 && i < len(dirs)-1 {
+			db.fs.Remove(dir)
+		}
 	}
 
 	return nil

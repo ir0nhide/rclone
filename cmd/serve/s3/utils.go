@@ -3,6 +3,7 @@ package s3
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -120,7 +121,7 @@ func prefixParser(p *gofakes3.Prefix) (path, remaining string, ok bool) {
 }
 
 func mkdirRecursive(path string, fs *vfs.VFS) error {
-	dirs := strings.Split(path, "/")
+	dirs := strings.Split(filepath.ToSlash(path), "/")
 	dir := ""
 	for _, d := range dirs {
 		dir += "/" + d
