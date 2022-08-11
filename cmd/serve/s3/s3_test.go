@@ -43,7 +43,10 @@ func TestS3(t *testing.T) {
 			"endpoint": "http://" + endpoint,
 		}
 
-		return config, func() {}
+		return config, func() {
+			w.Close()
+			w.Wait()
+		}
 	}
 
 	servetest.Run(t, "s3", start)

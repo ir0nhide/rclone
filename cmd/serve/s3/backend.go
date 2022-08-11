@@ -425,7 +425,7 @@ func (db *SimpleBucketBackend) deleteObjectLocked(bucketName, objectName string)
 
 	// Remove empty dirs
 	dirs := strings.Split(filepath.ToSlash(filepath.Dir(fp)), "/")
-	for i, _ := range dirs {
+	for i := range dirs {
 		dir := "/" + strings.Join(dirs[:len(dirs)-i], "/")
 		obj, err := db.fs.ReadDir(dir)
 		if err != nil {
